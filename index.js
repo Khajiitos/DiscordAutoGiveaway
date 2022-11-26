@@ -26,3 +26,15 @@ if (!config.token) {
 }
 
 const api = new DiscordApi(config.token);
+
+api.addMessageListener((json) => {
+    if (json.op !== 0 || json.t !== 'MESSAGE_CREATE')
+        return;
+
+    if (json.d.author.id != '294882584201003009') // GiveawayBot
+        return;
+
+    if (json.d.components.length != 0) {
+        const component = json.d.components[0];
+    }
+});
