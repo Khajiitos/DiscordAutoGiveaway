@@ -81,7 +81,7 @@ api.addMessageListener((json) => {
         }, res => {
 
             if (res.statusCode === 204) {
-                console.log(`Successfully joined the giveaway for ${name}`)
+                console.log(`Successfully joined the giveaway for ${name}.`)
             } else {
                 console.log(`Couldn't join the giveaway, http response code: ${res.statusCode}`);
             }
