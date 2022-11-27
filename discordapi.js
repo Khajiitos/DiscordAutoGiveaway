@@ -37,12 +37,14 @@ class DiscordApi {
     websocket = null;
     session_id = null;
     heartbeatTimeout = null;
+    heartbeatInterval = null;
     heartbeat_interval = null;
     lastHeartbeatAcknowledged = true;
     heartbeatNotAcknowledgedTimeout = null;
     resume_gateway_url = null;
     resumeNotAcknowledgedTimeout = null;
     resumeRetryDelay = 30;
+    messageListeners = [];
 
     constructor(token) {
         this.token = token;
@@ -66,7 +68,7 @@ class DiscordApi {
 
             switch (json.op) {
                 case 10: // HELLO
-                    this.heartbeat_interval = json.heartbeat_interval;
+                    this.heartbeat_interval = json.d.heartbeat_interval;
                     this.initHeartbeatLoop();
                     if (resume) {
                         this.resume();
@@ -84,7 +86,7 @@ class DiscordApi {
                 case 7: // RECONNECT
                     console.log('[Discord API] Discord wants us to reconnect.');
                     this.close();
-                    this.initWebsocket();
+                    this.initWebsocket(true);
                     break;
                 case 0:
                     if (json.t === 'READY') {
@@ -94,13 +96,14 @@ class DiscordApi {
                     }
                     break;
             }
+            this.messageListeners.forEach(fn => fn(json));
         });
     }
 
     initHeartbeatLoop() {
         this.heartbeatTimeout = setTimeout(() => {
             this.sendHeartbeat();
-            this.heartbeatTimeout = setTimeout(() => {
+            this.heartbeatInterval = setInterval(() => {
                 this.sendHeartbeat();
             }, this.heartbeat_interval);
         }, Math.random() * this.heartbeat_interval);
@@ -109,9 +112,8 @@ class DiscordApi {
     sendHeartbeat() {
         this.lastHeartbeatAcknowledged = false;
         this.heartbeatNotAcknowledgedTimeout = setTimeout(() => {
-            
-            console.log("[Discord API] Last heartbeat hasn't been acknowledged in 15 seconds. Connection problems?");
-        }, 15000);
+            console.log("[Discord API] Last heartbeat hasn't been acknowledged in 10 seconds. Connection problems?");
+        }, 10000);
         this.websocket.send(JSON.stringify({
             op: 1,
             d: this.seq
@@ -126,6 +128,7 @@ class DiscordApi {
 
     close() {
         clearTimeout(this.heartbeatTimeout);
+        clearInterval(this.heartbeatInterval);
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         this.websocket.close();
     }
@@ -145,6 +148,10 @@ class DiscordApi {
             this.resume();
             this.resumeRetryDelay += 30;
         }, this.resumeRetryDelay);
+    }
+
+    addMessageListener(fn) {
+        this.messageListeners.push(fn);
     }
 }
 
