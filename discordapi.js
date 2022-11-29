@@ -55,11 +55,11 @@ class DiscordApi {
         this.websocket = new WS.WebSocket((resume === true ? this.resume_gateway_url : websocketUrl) + webSocketGetParams);
 
         this.websocket.on('open', () => {
-            console.log('[Discord API] Opened WebSocket');
+            this.log('Opened WebSocket');
         });
 
         this.websocket.on('close', code => {
-            console.log('[Discord API] WebSocket closed. Code: %d', code);
+            this.log(`WebSocket closed. Code: ${code}`);
             this.close();
         })
 
@@ -81,15 +81,15 @@ class DiscordApi {
                     this.lastHeartbeatAcknowledged = true;
                     break;
                 case 9: // INVALID_SESSION
-                    console.log('[Discord API] Invalid Session');
+                    this.log('Invalid Session');
                     break;
                 case 7: // RECONNECT
-                    console.log('[Discord API] Discord wants us to reconnect.');
+                    this.log('Discord wants us to reconnect.');
                     this.initWebsocket(true);
                     break;
                 case 0:
                     if (json.t === 'READY') {
-                        console.log('[Discord API] Ready, connected as %s#%s', json.d.user.username, json.d.user.discriminator);
+                        this.log(`Ready, connected as ${json.d.user.username + '#' + json.d.user.discriminator}`);
                         this.session_id = json.d.session_id;
                         this.resume_gateway_url = json.d.resume_gateway_url;
                     }
@@ -111,7 +111,7 @@ class DiscordApi {
     sendHeartbeat() {
         this.lastHeartbeatAcknowledged = false;
         this.heartbeatNotAcknowledgedTimeout = setTimeout(() => {
-            console.log("[Discord API] Last heartbeat hasn't been acknowledged in 10 seconds. Connection problems?");
+            this.log("Last heartbeat hasn't been acknowledged in 10 seconds. Connection problems?");
         }, 10000);
         this.websocket.send(JSON.stringify({
             op: 1,
@@ -143,7 +143,7 @@ class DiscordApi {
         }));
 
         this.resumeNotAcknowledgedTimeout = setTimeout(() => {
-            console.log("[Discord API] Tried to resume, but we didn't get a response. Connection error? Trying again in %d seconds.", this.resumeRetryDelay);
+            this.log(`Tried to resume, but we didn't get a response. Connection error? Trying again in ${this.resumeRetryDelay} seconds.`);
             this.resume();
             this.resumeRetryDelay += 30;
         }, this.resumeRetryDelay);
@@ -151,6 +151,14 @@ class DiscordApi {
 
     addMessageListener(fn) {
         this.messageListeners.push(fn);
+    }
+
+    log(text) {
+        const date = new Date();
+        const hour = date.getHours().toString().padStart(2, '0');
+        const minute = date.getMinutes().toString().padStart(2, '0');
+        const second = date.getSeconds().toString().padStart(2, '0');
+        console.log(`[Discord API - ${hour + ':' + minute + ':' + second}] ${text}`);
     }
 }
 
