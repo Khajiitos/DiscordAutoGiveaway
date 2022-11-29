@@ -85,7 +85,6 @@ class DiscordApi {
                     break;
                 case 7: // RECONNECT
                     console.log('[Discord API] Discord wants us to reconnect.');
-                    this.close();
                     this.initWebsocket(true);
                     break;
                 case 0:
