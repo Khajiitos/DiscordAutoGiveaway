@@ -1,7 +1,7 @@
 {
   "name": "discordautogiveaway",
   "version": "1.0.0",
-  "description": "Automatically takes part discord giveaways",
+  "description": "Automatically takes part in discord giveaways",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
