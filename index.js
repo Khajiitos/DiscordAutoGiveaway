@@ -49,7 +49,7 @@ api.addMessageListener((json) => {
 
     const delay = 5 + Math.floor(Math.random() * 25);
     const name = embed.title;
-    console.log(`Giveaway created for ${name}! Joining it in ${delay} seconds.`);
+    api.log(`Giveaway created for ${name}! Joining it in ${delay} seconds.`);
 
     setTimeout(() => {
 
@@ -82,18 +82,14 @@ api.addMessageListener((json) => {
         }, res => {
 
             if (res.statusCode === 204) {
-                console.log(`Successfully joined the giveaway for ${name}.`)
+                api.log(`Successfully joined the giveaway for ${name}.`)
             } else {
-                console.log(`Couldn't join the giveaway, http response code: ${res.statusCode}`);
+                api.log(`Couldn't join the giveaway, http response code: ${res.statusCode}`);
             }
 
             res.on('error', err => {
                 console.error(err);
             });
-
-            res.on('data', data => {
-                console.log(data.toString());
-            })
         });
         req.write(JSON.stringify(data));
         req.end();
