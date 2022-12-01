@@ -1,4 +1,5 @@
 const WS = require('ws');
+const config = require('./config');
 
 const websocketUrl = 'wss://gateway.discord.gg';
 const webSocketGetParams = '/?v=9&encoding=json';
@@ -90,6 +91,9 @@ class DiscordApi {
                     this.initWebsocket(true);
                     break;
                 case 0: // DISPATCH
+                    if (config.printDispatch && !config.printDispatchExceptions.some(t => t === json.t)) {
+                        console.log(json);
+                    }
                     if (json.t === 'READY') {
                         this.logApi(`Ready, connected as ${json.d.user.username + '#' + json.d.user.discriminator}`);
                         this.session_id = json.d.session_id;
