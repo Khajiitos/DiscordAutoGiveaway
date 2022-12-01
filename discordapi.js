@@ -61,7 +61,9 @@ class DiscordApi {
         this.websocket.on('close', code => {
             this.logApi(`WebSocket closed. Code: ${code}`);
             this.close();
-        })
+        });
+
+        this.websocket.on('error', console.error);
 
         this.websocket.on('message', message => {
             const json = JSON.parse(message);
