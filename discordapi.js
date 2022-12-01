@@ -87,11 +87,14 @@ class DiscordApi {
                     this.logApi('Discord wants us to reconnect.');
                     this.initWebsocket(true);
                     break;
-                case 0:
+                case 0: // DISPATCH
                     if (json.t === 'READY') {
                         this.logApi(`Ready, connected as ${json.d.user.username + '#' + json.d.user.discriminator}`);
                         this.session_id = json.d.session_id;
                         this.resume_gateway_url = json.d.resume_gateway_url;
+                    } else if (json.t === 'RESUMED') {
+                        clearTimeout(this.resumeNotAcknowledgedTimeout);
+                        this.logApi('Last session resumed successfully.')
                     }
                     break;
             }
