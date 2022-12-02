@@ -62,6 +62,11 @@ class DiscordApi {
         this.websocket.on('close', code => {
             this.logApi(`WebSocket closed. Code: ${code}`);
             this.close();
+
+            if (code == 1006) {
+                this.logApi('Abnormal disconnection detected. Attempting to reconnect.');
+                this.initWebsocket(true);
+            }
         });
 
         this.websocket.on('error', console.error);
