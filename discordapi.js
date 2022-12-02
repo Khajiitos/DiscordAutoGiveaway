@@ -166,7 +166,7 @@ class DiscordApi {
             this.logApi(`Tried to resume, but we didn't get a response. Connection error? Trying again in ${this.resumeRetryDelay} seconds.`);
             this.resume();
             this.resumeRetryDelay += 30;
-        }, this.resumeRetryDelay);
+        }, this.resumeRetryDelay * 1000);
     }
 
     addMessageListener(fn) {
