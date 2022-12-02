@@ -66,6 +66,9 @@ class DiscordApi {
             if (code == 1006) {
                 this.logApi('Abnormal disconnection detected. Attempting to reconnect.');
                 this.initWebsocket(true);
+            } else if (code === 1000) {
+                this.logApi('Uhh, why did we get disconnected?');
+                this.initWebsocket(true);
             }
         });
 
