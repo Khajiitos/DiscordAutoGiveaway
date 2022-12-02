@@ -26,6 +26,7 @@ api.addMessageListener((json) => {
     if (component.custom_id !== 'enter-giveaway')
         return;
     
+    // TODO
     const descriptionRegex = /^Ends: <t:(\d+):R>[\S\s]*Winners: \*\*(\d+)\*\*$/g;
     const matches = embed.description.match(descriptionRegex);
 

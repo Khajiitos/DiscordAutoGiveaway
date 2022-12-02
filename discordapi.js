@@ -84,10 +84,13 @@ class DiscordApi {
                     this.lastHeartbeatAcknowledged = true;
                     break;
                 case 9: // INVALID_SESSION
-                    this.logApi('Invalid Session');
+                    this.logApi('Invalid Session. Trying to reconnect and reidentify.');
+                    this.close();
+                    this.initWebsocket(false);
                     break;
                 case 7: // RECONNECT
                     this.logApi('Discord wants us to reconnect.');
+                    this.close();
                     this.initWebsocket(true);
                     break;
                 case 0: // DISPATCH
