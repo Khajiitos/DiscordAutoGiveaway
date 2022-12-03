@@ -46,6 +46,8 @@ class DiscordApi {
     resumeNotAcknowledgedTimeout = null;
     resumeRetryDelay = 30;
     messageListeners = [];
+    connectRetryDelay = 10;
+    connectRetryTimeout = null;
 
     constructor(token) {
         this.token = token;
@@ -64,11 +66,17 @@ class DiscordApi {
             this.close();
 
             if (code === 1006 || code === 1005) {
-                this.logApi('Abnormal disconnection detected. Attempting to reconnect.');
-                this.initWebsocket(true);
+                this.logApi(`Abnormal disconnection detected. Attempting to reconnect in ${this.connectRetryDelay} seconds.`);
+                connectRetryTimeout = setTimeout(() => {
+                    this.initWebsocket(true);
+                    this.connectRetryDelay += 10;
+                }, this.connectRetryDelay * 1000);
             } else if (code === 1000) {
-                this.logApi('Uhh, why did we get disconnected?');
-                this.initWebsocket(true);
+                this.logApi(`Uhh, why did we get disconnected? Attempting to reconnect in ${this.connectRetryDelay} seconds.`);
+                connectRetryTimeout = setTimeout(() => {
+                    this.initWebsocket(true);
+                    this.connectRetryDelay += 10;
+                }, this.connectRetryDelay * 1000);
             }
         });
 
