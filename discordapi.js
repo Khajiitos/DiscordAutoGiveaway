@@ -161,7 +161,7 @@ class DiscordApi {
         clearInterval(this.heartbeatInterval);
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         this.websocket.removeAllListeners('message');
-        if (this.websocket.readyState === 1 || this.websocket.readyState === 2)
+        if (this.websocket.readyState === 1)
             this.websocket.close();
     }
 
