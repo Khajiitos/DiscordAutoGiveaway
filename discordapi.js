@@ -70,12 +70,6 @@ class DiscordApi {
                     this.initWebsocket(true);
                     this.connectRetryDelay += 10;
                 }, this.connectRetryDelay * 1000);
-            } else if (code === 1000) {
-                this.logApi(`Uhh, why did we get disconnected? Attempting to reconnect in ${this.connectRetryDelay} seconds.`);
-                this.connectRetryTimeout = setTimeout(() => {
-                    this.initWebsocket(true);
-                    this.connectRetryDelay += 10;
-                }, this.connectRetryDelay * 1000);
             } else {
                 this.logApi(`WebSocket closed. Code: ${code}`);
             }
@@ -162,7 +156,7 @@ class DiscordApi {
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         this.websocket.removeAllListeners('message');
         if (this.websocket.readyState === 1)
-            this.websocket.close();
+            this.websocket.close(1000);
     }
 
     resume() {
