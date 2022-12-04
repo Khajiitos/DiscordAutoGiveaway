@@ -80,7 +80,6 @@ class DiscordApi {
 
         this.websocket.on('message', message => {
             const json = JSON.parse(message);
-            console.log(json.t + "(" + json.op + ")");
 
             switch (json.op) {
                 case 10: // HELLO
