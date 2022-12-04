@@ -55,6 +55,7 @@ class DiscordApi {
     }
 
     initWebsocket(resume = false) {
+        resume = false; // TEST
         this.websocket = new WS.WebSocket((resume === true ? this.resume_gateway_url : websocketUrl) + webSocketGetParams);
 
         this.websocket.on('open', () => {
@@ -70,7 +71,7 @@ class DiscordApi {
                     this.initWebsocket(true);
                     this.connectRetryDelay += 10;
                 }, this.connectRetryDelay * 1000);
-            } else {
+            } else if (code !== 1000) {
                 this.logApi(`WebSocket closed. Code: ${code}`);
             }
         });
@@ -79,6 +80,7 @@ class DiscordApi {
 
         this.websocket.on('message', message => {
             const json = JSON.parse(message);
+            console.log(json.t + "(" + json.op + ")");
 
             switch (json.op) {
                 case 10: // HELLO
