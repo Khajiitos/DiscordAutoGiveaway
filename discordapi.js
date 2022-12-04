@@ -62,7 +62,6 @@ class DiscordApi {
         });
 
         this.websocket.on('close', code => {
-            this.logApi(`WebSocket closed. Code: ${code}`);
             this.close();
 
             if (code === 1006 || code === 1005) {
@@ -77,6 +76,8 @@ class DiscordApi {
                     this.initWebsocket(true);
                     this.connectRetryDelay += 10;
                 }, this.connectRetryDelay * 1000);
+            } else {
+                this.logApi(`WebSocket closed. Code: ${code}`);
             }
         });
 
@@ -139,8 +140,10 @@ class DiscordApi {
     sendHeartbeat() {
         this.lastHeartbeatAcknowledged = false;
         this.heartbeatNotAcknowledgedTimeout = setTimeout(() => {
-            this.logApi("Last heartbeat hasn't been acknowledged in 10 seconds. Connection problems?");
-        }, 10000);
+            this.logApi("Last heartbeat hasn't been acknowledged in 15 seconds. Reconnecting.");
+            this.close();
+            this.initWebsocket(true);
+        }, 15000);
         this.websocket.send(JSON.stringify({
             op: 1,
             d: this.seq
@@ -157,6 +160,7 @@ class DiscordApi {
         clearTimeout(this.heartbeatTimeout);
         clearInterval(this.heartbeatInterval);
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
+        this.websocket.removeAllListeners('message');
         this.websocket.close();
     }
 
