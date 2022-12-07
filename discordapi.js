@@ -1,8 +1,9 @@
 const WS = require('ws');
 const config = require('./config');
+const zlib = require('zlib');
 
 const websocketUrl = 'wss://gateway.discord.gg';
-const webSocketGetParams = '/?v=9&encoding=json';
+const webSocketGetParams = '/?v=9&encoding=json&compress=zlib-stream';
 
 const defaultIdentifySettings = {
     op: 2,
@@ -48,9 +49,23 @@ class DiscordApi {
     messageListeners = [];
     connectRetryDelay = 10;
     connectRetryTimeout = null;
+    inflator = zlib.createInflate();
+    bytes = [];
+    inflateOutput = '';
 
     constructor(token) {
         this.token = token;
+        this.inflator.setEncoding('utf-8');
+        this.inflator.on('data', (data) => {
+            this.inflateOutput += data;
+            try {
+                this.onMessage(JSON.parse(this.inflateOutput));
+                this.inflateOutput = '';
+            } catch(e) {
+                // Incomplete message
+                // Even though we get an incomplete message from Discord, it still ends with 0x00 0x00 0xFF 0xFF for some reason?
+            }
+        });
         this.initWebsocket(false);
     }
 
@@ -79,48 +94,54 @@ class DiscordApi {
         this.websocket.on('error', console.error);
 
         this.websocket.on('message', message => {
-            const json = JSON.parse(message);
-
-            switch (json.op) {
-                case 10: // HELLO
-                    this.heartbeat_interval = json.d.heartbeat_interval;
-                    this.initHeartbeatLoop();
-                    if (resume) {
-                        this.resume();
-                    } else {
-                        this.sendIdentify();
-                    }
-                    break;
-                case 11: // HEARTBEAT_ACK
-                    clearTimeout(this.heartbeatNotAcknowledgedTimeout);
-                    this.lastHeartbeatAcknowledged = true;
-                    break;
-                case 9: // INVALID_SESSION
-                    this.logApi('Invalid Session. Trying to reconnect and reidentify.');
-                    this.close();
-                    this.initWebsocket(false);
-                    break;
-                case 7: // RECONNECT
-                    this.logApi('Discord wants us to reconnect.');
-                    this.close();
-                    this.initWebsocket(true);
-                    break;
-                case 0: // DISPATCH
-                    if (config.printDispatch && !config.printDispatchExceptions.some(t => t === json.t)) {
-                        console.log(json);
-                    }
-                    if (json.t === 'READY') {
-                        this.logApi(`Ready, connected as ${json.d.user.username + '#' + json.d.user.discriminator}`);
-                        this.session_id = json.d.session_id;
-                        this.resume_gateway_url = json.d.resume_gateway_url;
-                    } else if (json.t === 'RESUMED') {
-                        clearTimeout(this.resumeNotAcknowledgedTimeout);
-                        this.logApi('Last session resumed successfully.')
-                    }
-                    break;
+            this.bytes = [...this.bytes, ...Uint8Array.from(message)];
+            if (message.byteLength > 4 &&
+                message[message.byteLength - 4] === 0x00 &&
+                message[message.byteLength - 3] === 0x00 &&
+                message[message.byteLength - 2] === 0xFF &&
+                message[message.byteLength - 1] === 0xFF) {
+                this.inflator.write(Buffer.from(this.bytes));
+                this.bytes = [];
             }
-            this.messageListeners.forEach(fn => fn(json));
         });
+    }
+
+    onMessage(json) {
+        switch (json.op) {
+            case 10: // HELLO
+                this.heartbeat_interval = json.d.heartbeat_interval;
+                this.initHeartbeatLoop();
+                this.sendIdentify();
+                break;
+            case 11: // HEARTBEAT_ACK
+                clearTimeout(this.heartbeatNotAcknowledgedTimeout);
+                this.lastHeartbeatAcknowledged = true;
+                break;
+            case 9: // INVALID_SESSION
+                this.logApi('Invalid Session. Trying to reconnect and reidentify.');
+                this.close();
+                this.initWebsocket(false);
+                break;
+            case 7: // RECONNECT
+                this.logApi('Discord wants us to reconnect.');
+                this.close();
+                this.initWebsocket(true);
+                break;
+            case 0: // DISPATCH
+                if (config.printDispatch && !config.printDispatchExceptions.some(t => t === json.t)) {
+                    console.log(json);
+                }
+                if (json.t === 'READY') {
+                    this.logApi(`Ready, connected as ${json.d.user.username + '#' + json.d.user.discriminator}`);
+                    this.session_id = json.d.session_id;
+                    this.resume_gateway_url = json.d.resume_gateway_url;
+                } else if (json.t === 'RESUMED') {
+                    clearTimeout(this.resumeNotAcknowledgedTimeout);
+                    this.logApi('Last session resumed successfully.')
+                }
+                break;
+        }
+        this.messageListeners.forEach(fn => fn(json));
     }
 
     initHeartbeatLoop() {
