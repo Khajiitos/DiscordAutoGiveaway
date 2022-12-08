@@ -49,12 +49,19 @@ class DiscordApi {
     messageListeners = [];
     connectRetryDelay = 10;
     connectRetryTimeout = null;
-    inflator = zlib.createInflate();
+    inflator = null;
     bytes = [];
     inflateOutput = '';
 
     constructor(token) {
         this.token = token;
+        this.initWebsocket(false);
+    }
+
+    initWebsocket(resume = false) {
+        resume = false; // TEST
+
+        this.inflator = zlib.createInflate();
         this.inflator.setEncoding('utf-8');
         this.inflator.on('data', (data) => {
             this.inflateOutput += data;
@@ -64,13 +71,10 @@ class DiscordApi {
             } catch(e) {
                 // Incomplete message
                 // Even though we get an incomplete message from Discord, it still ends with 0x00 0x00 0xFF 0xFF for some reason?
+                // Also this is stupid as we're running a lot more JSON.parses
             }
         });
-        this.initWebsocket(false);
-    }
-
-    initWebsocket(resume = false) {
-        resume = false; // TEST
+        
         this.websocket = new WS.WebSocket((resume === true ? this.resume_gateway_url : websocketUrl) + webSocketGetParams);
 
         this.websocket.on('open', () => {
@@ -178,6 +182,8 @@ class DiscordApi {
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         clearTimeout(this.resumeNotAcknowledgedTimeout);
         this.websocket.removeAllListeners('message');
+        this.inflator.close();
+
         if (this.websocket.readyState === 1)
             this.websocket.close(1000);
     }
