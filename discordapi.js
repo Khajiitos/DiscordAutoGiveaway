@@ -183,6 +183,8 @@ class DiscordApi {
         clearTimeout(this.resumeNotAcknowledgedTimeout);
         this.websocket.removeAllListeners('message');
         this.inflator.close();
+        this.bytes = [];
+        this.inflateOutput = '';
 
         if (this.websocket.readyState === 1)
             this.websocket.close(1000);
