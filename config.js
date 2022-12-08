@@ -5,7 +5,8 @@ let config = {};
 const defaultConfig = {
     token: '',
     printDispatch: false,
-    printDispatchExceptions: []
+    printDispatchExceptions: [],
+    useCompression: true
 };
 
 if (!fs.existsSync('config.json')) {

@@ -3,7 +3,7 @@ const config = require('./config');
 const zlib = require('zlib');
 
 const websocketUrl = 'wss://gateway.discord.gg';
-const webSocketGetParams = '/?v=9&encoding=json&compress=zlib-stream';
+const webSocketGetParams = `/?v=9&encoding=json${config.useCompression ? '&compress=zlib-stream' : ''}`;
 
 const defaultIdentifySettings = {
     op: 2,
@@ -61,19 +61,21 @@ class DiscordApi {
     initWebsocket(resume = false) {
         resume = false; // TEST
 
-        this.inflator = zlib.createInflate();
-        this.inflator.setEncoding('utf-8');
-        this.inflator.on('data', (data) => {
-            this.inflateOutput += data;
-            try {
-                this.onMessage(JSON.parse(this.inflateOutput));
-                this.inflateOutput = '';
-            } catch(e) {
-                // Incomplete message
-                // Even though we get an incomplete message from Discord, it still ends with 0x00 0x00 0xFF 0xFF for some reason?
-                // Also this is stupid as we're running a lot more JSON.parses
-            }
-        });
+        if (config.useCompression) {
+            this.inflator = zlib.createInflate();
+            this.inflator.setEncoding('utf-8');
+            this.inflator.on('data', (data) => {
+                this.inflateOutput += data;
+                try {
+                    this.onMessage(JSON.parse(this.inflateOutput));
+                    this.inflateOutput = '';
+                } catch(e) {
+                    // Incomplete message
+                    // Even though we get an incomplete message from Discord, it still ends with 0x00 0x00 0xFF 0xFF for some reason?
+                    // Also this is stupid as we're running a lot more JSON.parses
+                }
+            });
+        }
         
         this.websocket = new WS.WebSocket((resume === true ? this.resume_gateway_url : websocketUrl) + webSocketGetParams);
 
@@ -98,6 +100,10 @@ class DiscordApi {
         this.websocket.on('error', console.error);
 
         this.websocket.on('message', message => {
+            if (!config.useCompression) {
+                this.onMessage(JSON.parse(message));
+                return;
+            }
             this.bytes = [...this.bytes, ...Uint8Array.from(message)];
             if (message.byteLength > 4 &&
                 message[message.byteLength - 4] === 0x00 &&
@@ -182,10 +188,11 @@ class DiscordApi {
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         clearTimeout(this.resumeNotAcknowledgedTimeout);
         this.websocket.removeAllListeners('message');
-        this.inflator.close();
-        this.bytes = [];
-        this.inflateOutput = '';
-
+        if (config.useCompression) {
+            this.inflator.close();
+            this.bytes = [];
+            this.inflateOutput = '';
+        }
         if (this.websocket.readyState === 1)
             this.websocket.close(1000);
     }
