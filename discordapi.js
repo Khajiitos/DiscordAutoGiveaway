@@ -165,6 +165,7 @@ class DiscordApi {
 
     sendHeartbeat() {
         this.lastHeartbeatAcknowledged = false;
+        clearTimeout(this.heartbeatNotAcknowledgedTimeout);
         this.heartbeatNotAcknowledgedTimeout = setTimeout(() => {
             this.logApi("Last heartbeat hasn't been acknowledged in 15 seconds. Reconnecting.");
             this.close();
