@@ -52,6 +52,7 @@ class DiscordApi {
     inflator = null;
     bytes = [];
     inflateOutput = '';
+    closeIntented = false;
 
     constructor(token) {
         this.token = token;
@@ -60,6 +61,7 @@ class DiscordApi {
 
     initWebsocket(resume = false) {
         resume = false; // TEST
+        this.closeIntented = false;
 
         if (config.useCompression) {
             this.inflator = zlib.createInflate();
@@ -83,21 +85,22 @@ class DiscordApi {
             this.logApi('Opened WebSocket');
         });
 
+        this.websocket.on('error', () => {
+
+        });
+
         this.websocket.on('close', code => {
             this.close();
 
-            if (code === 1006 || code === 1005) {
+            if (!this.closeIntented) {
                 this.logApi(`Abnormal disconnection detected. Attempting to reconnect in ${this.connectRetryDelay} seconds.`);
+                clearTimeout(this.connectRetryTimeout);
                 this.connectRetryTimeout = setTimeout(() => {
                     this.initWebsocket(true);
                     this.connectRetryDelay += 10;
                 }, this.connectRetryDelay * 1000);
-            } else if (code !== 1000) {
-                this.logApi(`WebSocket closed. Code: ${code}`);
             }
         });
-
-        this.websocket.on('error', console.error);
 
         this.websocket.on('message', message => {
             if (!config.useCompression) {
@@ -184,6 +187,7 @@ class DiscordApi {
     }
 
     close() {
+        this.closeIntented = true;
         clearTimeout(this.heartbeatTimeout);
         clearInterval(this.heartbeatInterval);
         clearTimeout(this.heartbeatNotAcknowledgedTimeout);
